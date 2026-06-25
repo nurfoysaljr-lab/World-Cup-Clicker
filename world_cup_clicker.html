@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>World Cup Clicker — 48 to 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#0B1B2B;
+    --night-2:#102439;
+    --pitch:#0B3D2E;
+    --grass:#1F7A4D;
+    --gold:#D4AF37;
+    --chalk:#F4F2EC;
+    --red:#C0392B;
+    --line: rgba(244,242,236,0.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(circle at 50% -10%, #16314a 0%, var(--night) 55%, #07131f 100%);
+    color:var(--chalk);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  .wrap{
+    max-width:980px;
+    margin:0 auto;
+    padding:28px 20px 80px;
+  }
+
+  /* ---------- HEADER / SCOREBOARD ---------- */
+  header{
+    text-align:center;
+    margin-bottom:28px;
+    position:relative;
+  }
+  .eyebrow{
+    font-family:'Inter';
+    font-weight:600;
+    letter-spacing:3px;
+    font-size:11px;
+    color:var(--gold);
+    text-transform:uppercase;
+    opacity:0.9;
+  }
+  h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:clamp(32px,6vw,52px);
+    letter-spacing:1px;
+    text-transform:uppercase;
+    margin:6px 0 18px;
+    line-height:1;
+    background:linear-gradient(180deg,#fff, #cfd8e3 70%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    text-shadow:0 0 40px rgba(212,175,55,0.15);
+  }
+  .scoreboard{
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    flex-wrap:wrap;
+    padding:10px;
+    background:rgba(0,0,0,0.25);
+    border:1px solid var(--line);
+    border-radius:10px;
+  }
+  .seg{
+    font-family:'Oswald';
+    font-size:10px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:7px 10px;
+    border-radius:5px;
+    background:rgba(255,255,255,0.04);
+    color:rgba(244,242,236,0.35);
+    transition:all .35s;
+    border:1px solid transparent;
+  }
+  .seg.active{
+    background:var(--grass);
+    color:#fff;
+    box-shadow:0 0 16px rgba(31,122,77,0.7);
+    border-color:rgba(255,255,255,0.2);
+  }
+  .seg.done{
+    color:var(--gold);
+    border-color:rgba(212,175,55,0.3);
+  }
+
+  /* ---------- STAGE CARD ---------- */
+  .stage-card{
+    background:linear-gradient(160deg, rgba(255,255,255,0.045), rgba(255,255,255,0.01));
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:30px;
+    position:relative;
+    overflow:hidden;
+  }
+  .stage-card::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 60px);
+    pointer-events:none;
+  }
+  .stage-title{
+    font-family:'Oswald';
+    font-size:13px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--gold);
+    text-align:center;
+    margin-bottom:4px;
+  }
+  .stage-sub{
+    text-align:center;
+    font-size:14px;
+    color:rgba(244,242,236,0.65);
+    margin-bottom:26px;
+  }
+  .group-letter{
+    font-family:'Oswald';
+    font-weight:700;
+    font-size:42px;
+    text-align:center;
+    letter-spacing:2px;
+    margin-bottom:2px;
+  }
+
+  /* ---------- TEAM CARDS ---------- */
+  .grid4{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    max-width:520px;
+    margin:0 auto;
+  }
+  .team-card{
+    position:relative;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 12px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition:transform .15s, background .2s, border-color .2s;
+    user-select:none;
+  }
+  .team-card:hover:not(.disabled){
+    transform:translateY(-3px);
+    border-color:rgba(212,175,55,0.5);
+    background:rgba(255,255,255,0.07);
+  }
+  .team-card.disabled{
+    cursor:default;
+    opacity:0.45;
+  }
+  .team-card.eliminated{
+    opacity:0.3;
+    filter:grayscale(0.6);
+  }
+  .team-card.winner-glow{
+    border-color:var(--gold);
+    box-shadow:0 0 0 1px var(--gold), 0 0 22px rgba(212,175,55,0.25);
+  }
+  .flag{
+    font-size:44px;
+    line-height:1;
+    display:block;
+    margin-bottom:8px;
+  }
+  .tname{
+    font-family:'Oswald';
+    font-weight:600;
+    font-size:14px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+  .rank-stamp{
+    position:absolute;
+    top:-10px; right:-10px;
+    width:30px;height:30px;
+    border-radius:50%;
+    background:var(--gold);
+    color:#1a1305;
+    font-family:'Oswald';
+    font-weight:700;
+    font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    transform:rotate(8deg);
+  }
+  .elim-x{
+    position:absolute;
+    top:-8px; right:-8px;
+    width:26px;height:26px;
+    border-radius:50%;
+    background:var(--red);
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ---------- INSTRUCTION PILL ---------- */
+  .instruction{
+    text-align:center;
+    margin-bottom:20px;
+  }
+  .pill{
+    display:inline-block;
+    font-family:'Oswald';
+    font-size:13px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:8px 18px;
+    border-radius:999px;
+    background:rgba(31,122,77,0.25);
+    border:1px solid rgba(31,122,77,0.6);
+    color:#dff5e8;
+  }
+
+  /* ---------- MATCH LIST (knockout) ---------- */
+  .matches{
+    display:grid;
+    gap:12px;
+    max-width:560px;
+    margin:0 auto;
+  }
+  .match{
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:center;
+    background:rgba(255,255,255,0.035);
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .side{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 16px;
+    cursor:pointer;
+    transition:background .2s;
+  }
+  .side:hover{ background:rgba(212,175,55,0.10); }
+  .side.left{justify-content:flex-start;}
+  .side.right{justify-content:flex-end; flex-direction:row-reverse;}
+  .side .flag{font-size:26px; margin:0;}
+  .side .tname{font-size:13px;}
+  .side.chosen{ background:rgba(31,122,77,0.30); }
+  .side.lost{ opacity:0.35; filter:grayscale(0.7); cursor:default; }
+  .vs{
+    font-family:'Oswald';
+    font-size:11px;
+    color:rgba(244,242,236,0.4);
+    padding:0 8px;
+  }
+
+  /* ---------- THIRD PLACE PICKER ---------- */
+  .grid3{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    max-width:560px;
+    margin:0 auto 22px;
+  }
+  .counter{
+    text-align:center;
+    font-family:'Oswald';
+    letter-spacing:1px;
+    margin-bottom:18px;
+    color:rgba(244,242,236,0.7);
+  }
+  .counter b{color:var(--gold);}
+
+  /* ---------- BUTTONS ---------- */
+  .btn{
+    display:block;
+    margin:24px auto 0;
+    font-family:'Oswald';
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    font-size:14px;
+    padding:13px 34px;
+    border-radius:999px;
+    border:1px solid var(--gold);
+    background:var(--gold);
+    color:#1a1305;
+    cursor:pointer;
+    transition:transform .15s, opacity .2s;
+  }
+  .btn:hover{ transform:translateY(-2px); }
+  .btn:disabled{
+    opacity:0.3;
+    background:transparent;
+    color:rgba(244,242,236,0.4);
+    border-color:rgba(244,242,236,0.2);
+    cursor:not-allowed;
+    transform:none;
+  }
+  .btn.ghost{
+    background:transparent;
+    color:var(--chalk);
+    border-color:var(--line);
+  }
+
+  /* ---------- CHAMPION ---------- */
+  .champion-wrap{
+    text-align:center;
+    padding:30px 0 10px;
+  }
+  .trophy{
+    font-size:90px;
+    filter:drop-shadow(0 0 30px rgba(212,175,55,0.6));
+    animation:bob 2.2s ease-in-out infinite;
+  }
+  @keyframes bob{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+  }
+  .champ-flag{font-size:80px; display:block; margin:18px 0 6px;}
+  .champ-name{
+    font-family:'Oswald';
+    font-weight:700;
+    font-size:38px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    background:linear-gradient(180deg,#fff,#e9d385 80%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .champ-sub{
+    font-family:'Inter';
+    color:rgba(244,242,236,0.6);
+    margin-top:4px;
+  }
+  .confetti{
+    position:fixed; top:-10px; width:8px; height:14px;
+    opacity:0.9; pointer-events:none; z-index:50;
+    animation: fall linear forwards;
+  }
+  @keyframes fall{
+    to{ transform:translateY(110vh) rotate(540deg); opacity:0; }
+  }
+
+  footer{
+    text-align:center;
+    margin-top:30px;
+    font-size:11px;
+    color:rgba(244,242,236,0.35);
+    letter-spacing:1px;
+  }
+
+  @media (max-width:480px){
+    .grid3{grid-template-columns:repeat(2,1fr);}
+    .stage-card{padding:22px 16px;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .trophy{animation:none;}
+    .confetti{animation:none; display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">12 Groups · 48 Nations · 1 Champion</div>
+    <h1>World Cup Clicker</h1>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <div class="stage-card" id="stageCard"></div>
+
+  <footer>Click a team to advance it. The bracket fills itself in as you go.</footer>
+</div>
+
+<script>
+/* ============== DATA ============== */
+const TEAMS = [
+  {n:"Brazil",f:"🇧🇷"},{n:"Argentina",f:"🇦🇷"},{n:"France",f:"🇫🇷"},{n:"Germany",f:"🇩🇪"},
+  {n:"Spain",f:"🇪🇸"},{n:"Portugal",f:"🇵🇹"},{n:"Italy",f:"🇮🇹"},{n:"Netherlands",f:"🇳🇱"},
+  {n:"Belgium",f:"🇧🇪"},{n:"Croatia",f:"🇭🇷"},{n:"USA",f:"🇺🇸"},{n:"Mexico",f:"🇲🇽"},
+  {n:"Canada",f:"🇨🇦"},{n:"Japan",f:"🇯🇵"},{n:"South Korea",f:"🇰🇷"},{n:"Australia",f:"🇦🇺"},
+  {n:"Saudi Arabia",f:"🇸🇦"},{n:"Iran",f:"🇮🇷"},{n:"Qatar",f:"🇶🇦"},{n:"Morocco",f:"🇲🇦"},
+  {n:"Senegal",f:"🇸🇳"},{n:"Tunisia",f:"🇹🇳"},{n:"Algeria",f:"🇩🇿"},{n:"Nigeria",f:"🇳🇬"},
+  {n:"Ghana",f:"🇬🇭"},{n:"Cameroon",f:"🇨🇲"},{n:"Egypt",f:"🇪🇬"},{n:"South Africa",f:"🇿🇦"},
+  {n:"Uruguay",f:"🇺🇾"},{n:"Colombia",f:"🇨🇴"},{n:"Chile",f:"🇨🇱"},{n:"Ecuador",f:"🇪🇨"},
+  {n:"Peru",f:"🇵🇪"},{n:"Paraguay",f:"🇵🇾"},{n:"Poland",f:"🇵🇱"},{n:"Switzerland",f:"🇨🇭"},
+  {n:"Denmark",f:"🇩🇰"},{n:"Sweden",f:"🇸🇪"},{n:"Norway",f:"🇳🇴"},{n:"Serbia",f:"🇷🇸"},
+  {n:"Ukraine",f:"🇺🇦"},{n:"Turkey",f:"🇹🇷"},{n:"Greece",f:"🇬🇷"},{n:"Austria",f:"🇦🇹"},
+  {n:"Czech Republic",f:"🇨🇿"},{n:"Hungary",f:"🇭🇺"},{n:"Costa Rica",f:"🇨🇷"},{n:"Panama",f:"🇵🇦"}
+];
+const GROUP_LETTERS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+function buildGroups(){
+  const groups = {};
+  GROUP_LETTERS.forEach((letter, gi)=>{
+    groups[letter] = [TEAMS[gi], TEAMS[gi+12], TEAMS[gi+24], TEAMS[gi+36]];
+  });
+  return groups;
+}
+const GROUPS = buildGroups();
+
+const STAGE_LABELS = [
+  ["groups","Groups"],
+  ["thirdplace","Play-off"],
+  ["r32","R32"],
+  ["r16","R16"],
+  ["qf","Quarters"],
+  ["sf","Semis"],
+  ["final","Final"],
+  ["champion","Champion"]
+];
+
+/* ============== STATE ============== */
+let state = {
+  stage:"groups",
+  groupIndex:0,
+  groupPicks:{},      // letter -> [team,team,team] in rank order (1st,2nd,3rd)
+  thirdPlaceSelected:[], // teams chosen from the 12 third-placed
+  round32:[],         // 32 teams after draw
+  matches:[],         // current round matches [{a,b,winner}]
+  champion:null
+};
+
+function resetGame(){
+  state = {
+    stage:"groups", groupIndex:0, groupPicks:{}, thirdPlaceSelected:[],
+    round32:[], matches:[], champion:null
+  };
+  render();
+}
+
+/* ============== HELPERS ============== */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function teamCardHTML(team, opts={}){
+  const {rank=null, eliminated=false, clickable=true, extraClass=""} = opts;
+  let badge = "";
+  if(rank) badge = `<div class="rank-stamp">${rank}</div>`;
+  if(eliminated) badge = `<div class="elim-x">✕</div>`;
+  return `<div class="team-card ${extraClass}" data-team="${team.n}">
+    ${badge}
+    <span class="flag">${team.f}</span>
+    <span class="tname">${team.n}</span>
+  </div>`;
+}
+
+/* ============== RENDER: SCOREBOARD ============== */
+function renderScoreboard(){
+  const order = STAGE_LABELS.map(s=>s[0]);
+  const currentIdx = order.indexOf(state.stage);
+  const html = STAGE_LABELS.map(([key,label],i)=>{
+    let cls="seg";
+    if(i<currentIdx) cls+=" done";
+    if(i===currentIdx) cls+=" active";
+    return `<div class="${cls}">${label}</div>`;
+  }).join("");
+  document.getElementById("scoreboard").innerHTML = html;
+}
+
+/* ============== RENDER: GROUP STAGE ============== */
+function renderGroupStage(){
+  const letter = GROUP_LETTERS[state.groupIndex];
+  const teams = GROUPS[letter];
+  const picks = state.groupPicks[letter] || [];
+  const pickedNames = picks.map(t=>t.n);
+  const nextRankLabels = ["Pick the GROUP WINNER (1st)","Now pick the RUNNER-UP (2nd)","Now pick 3rd place"];
+  const rankNum = picks.length; // 0,1,2 -> next pick index
+
+  let instruction = "";
+  if(rankNum < 3){
+    instruction = `<div class="instruction"><span class="pill">${nextRankLabels[rankNum]}</span></div>`;
+  } else {
+    instruction = `<div class="instruction"><span class="pill">Group ${letter} complete — advancing…</span></div>`;
+  }
+
+  const cardsHTML = teams.map(team=>{
+    const idx = pickedNames.indexOf(team.n);
+    if(idx !== -1){
+      return teamCardHTML(team, {rank: idx+1, clickable:false, extraClass:"disabled winner-glow"});
+    }
+    if(rankNum >= 3){
+      // last remaining, unpicked => 4th place, eliminated
+      return teamCardHTML(team, {eliminated:true, clickable:false, extraClass:"disabled eliminated"});
+    }
+    return teamCardHTML(team, {clickable:true});
+  }).join("");
+
+  document.getElementById("stageCard").innerHTML = `
+    <div class="stage-title">Group Stage</div>
+    <div class="stage-sub">Group ${state.groupIndex+1} of 12</div>
+    <div class="group-letter">GROUP ${letter}</div>
+    ${instruction}
+    <div class="grid4">${cardsHTML}</div>
+  `;
+
+  document.querySelectorAll('#stageCard .team-card[data-team]').forEach(card=>{
+    if(card.classList.contains("disabled")) return;
+    card.addEventListener("click", ()=>{
+      const teamName = card.dataset.team;
+      const team = teams.find(t=>t.n===teamName);
+      if(!state.groupPicks[letter]) state.groupPicks[letter] = [];
+      state.groupPicks[letter].push(team);
+      render();
+      if(state.groupPicks[letter].length === 3){
+        setTimeout(()=>{
+          if(state.groupIndex < 11){
+            state.groupIndex++;
+            render();
+          } else {
+            startThirdPlaceStage();
+          }
+        }, 650);
+      }
+    });
+  });
+}
+
+/* ============== RENDER: THIRD PLACE PLAYOFF ============== */
+function startThirdPlaceStage(){
+  state.stage = "thirdplace";
+  state.thirdPlaceSelected = [];
+  render();
+}
+function renderThirdPlace(){
+  const thirds = GROUP_LETTERS.map(l=> state.groupPicks[l][2]);
+  const selected = state.thirdPlaceSelected.map(t=>t.n);
+
+  const cardsHTML = thirds.map(team=>{
+    const isSel = selected.includes(team.n);
+    return teamCardHTML(team, {extraClass: isSel ? "winner-glow" : ""});
+  }).join("");
+
+  const canConfirm = state.thirdPlaceSelected.length === 8;
+
+  document.getElementById("stageCard").innerHTML = `
+    <div class="stage-title">Best Third-Place Play-off</div>
+    <div class="stage-sub">12 nations finished third in their group. Pick the 8 lucky losers who advance to the Round of 32.</div>
+    <div class="counter"><b>${state.thirdPlaceSelected.length}</b> / 8 selected</div>
+    <div class="grid3">${cardsHTML}</div>
+    <button class="btn" id="confirmThirds" ${canConfirm? "" : "disabled"}>Confirm &amp; Draw Round of 32</button>
+  `;
+
+  document.querySelectorAll('#stageCard .team-card[data-team]').forEach(card=>{
+    card.addEventListener("click", ()=>{
+      const teamName = card.dataset.team;
+      const team = thirds.find(t=>t.n===teamName);
+      const idx = state.thirdPlaceSelected.findIndex(t=>t.n===teamName);
+      if(idx !== -1){
+        state.thirdPlaceSelected.splice(idx,1);
+      } else {
+        if(state.thirdPlaceSelected.length < 8){
+          state.thirdPlaceSelected.push(team);
+        }
+      }
+      render();
+    });
+  });
+
+  const btn = document.getElementById("confirmThirds");
+  if(btn){
+    btn.addEventListener("click", ()=>{
+      if(state.thirdPlaceSelected.length !== 8) return;
+      startKnockout();
+    });
+  }
+}
+
+/* ============== KNOCKOUT STAGES ============== */
+function startKnockout(){
+  const winners = GROUP_LETTERS.map(l=>state.groupPicks[l][0]);
+  const runnersUp = GROUP_LETTERS.map(l=>state.groupPicks[l][1]);
+  const pool = shuffle([...winners, ...runnersUp, ...state.thirdPlaceSelected]); // 32 teams
+  state.round32 = pool;
+  state.matches = pairUp(pool);
+  state.stage = "r32";
+  render();
+}
+function pairUp(list){
+  const matches = [];
+  for(let i=0;i<list.length;i+=2){
+    matches.push({a:list[i], b:list[i+1], winner:null});
+  }
+  return matches;
+}
+const ROUND_TITLES = {
+  r32:"Round of 32", r16:"Round of 16", qf:"Quarter-Finals", sf:"Semi-Finals", final:"The Final"
+};
+const ROUND_SUB = {
+  r32:"32 nations. Tap the team you think wins each tie.",
+  r16:"Down to 16. One more upset and they're out.",
+  qf:"Eight remain. Win here and you're in the semis.",
+  sf:"Four nations. Two tickets to the final.",
+  final:"This is it. One match for the trophy."
+};
+function renderKnockout(){
+  const title = ROUND_TITLES[state.stage];
+  const sub = ROUND_SUB[state.stage];
+  const matchesHTML = state.matches.map((m,i)=>{
+    const aChosen = m.winner && m.winner.n===m.a.n;
+    const bChosen = m.winner && m.winner.n===m.b.n;
+    const aLost = m.winner && !aChosen;
+    const bLost = m.winner && !bChosen;
+    return `
+    <div class="match" data-idx="${i}">
+      <div class="side left ${aChosen?'chosen':''} ${aLost?'lost':''}" data-side="a" data-idx="${i}">
+        <span class="flag">${m.a.f}</span><span class="tname">${m.a.n}</span>
+      </div>
+      <div class="vs">VS</div>
+      <div class="side right ${bChosen?'chosen':''} ${bLost?'lost':''}" data-side="b" data-idx="${i}">
+        <span class="flag">${m.b.f}</span><span class="tname">${m.b.n}</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("stageCard").innerHTML = `
+    <div class="stage-title">${title}</div>
+    <div class="stage-sub">${sub}</div>
+    <div class="matches">${matchesHTML}</div>
+  `;
+
+  document.querySelectorAll('#stageCard .side').forEach(side=>{
+    side.addEventListener("click", ()=>{
+      const idx = parseInt(side.dataset.idx);
+      const which = side.dataset.side;
+      const match = state.matches[idx];
+      if(match.winner) return; // already decided
+      match.winner = which==="a" ? match.a : match.b;
+      render();
+      checkRoundComplete();
+    });
+  });
+}
+function checkRoundComplete(){
+  const allDecided = state.matches.every(m=>m.winner);
+  if(!allDecided) return;
+  setTimeout(()=>{
+    const winners = state.matches.map(m=>m.winner);
+    if(winners.length === 1){
+      state.champion = winners[0];
+      state.stage = "champion";
+      render();
+      launchConfetti();
+      return;
+    }
+    const nextStageMap = {r32:"r16", r16:"qf", qf:"sf", sf:"final"};
+    state.stage = nextStageMap[state.stage];
+    state.matches = pairUp(winners);
+    render();
+  }, 700);
+}
+
+/* ============== CHAMPION ============== */
+function renderChampion(){
+  document.getElementById("stageCard").innerHTML = `
+    <div class="champion-wrap">
+      <div class="trophy">🏆</div>
+      <div class="champ-flag">${state.champion.f}</div>
+      <div class="champ-name">${state.champion.n}</div>
+      <div class="champ-sub">World Champion</div>
+      <button class="btn ghost" id="playAgain">Play Again</button>
+    </div>
+  `;
+  document.getElementById("playAgain").addEventListener("click", resetGame);
+}
+function launchConfetti(){
+  const colors = ["#D4AF37","#1F7A4D","#F4F2EC","#C0392B"];
+  for(let i=0;i<60;i++){
+    const el = document.createElement("div");
+    el.className="confetti";
+    el.style.left = Math.random()*100+"vw";
+    el.style.background = colors[Math.floor(Math.random()*colors.length)];
+    el.style.animationDuration = (2.5+Math.random()*1.8)+"s";
+    el.style.animationDelay = (Math.random()*0.6)+"s";
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 5200);
+  }
+}
+
+/* ============== MAIN RENDER ============== */
+function render(){
+  renderScoreboard();
+  switch(state.stage){
+    case "groups": renderGroupStage(); break;
+    case "thirdplace": renderThirdPlace(); break;
+    case "r32": case "r16": case "qf": case "sf": case "final":
+      renderKnockout(); break;
+    case "champion": renderChampion(); break;
+  }
+}
+render();
+</script>
+</body>
+</html>
